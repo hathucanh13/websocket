@@ -102,6 +102,10 @@ func (h *Hub) handleCommand(client *Client, cmd string) {
 		client.Send <- data
 		return
 	}
+	// Send global statistics
+	for r := range h.rooms {
+		userCount[r] = len(h.rooms[r].Clients)
+	}
 	switch cmd {
 	case "/users":
 		var users []string
@@ -118,14 +122,15 @@ func (h *Hub) handleCommand(client *Client, cmd string) {
 		h.sendToClient(client, msg)
 
 	case "/stats":
-		// Send global statistics
-		for r := range h.rooms {
-			userCount[r] = len(h.rooms[r].Clients)
+
+		TotalUsers := 0
+		for _, count := range userCount {
+			TotalUsers += count
 		}
 		stats := StatsMessage{
-			TotalUsers:  len(room.Clients),
-			TotalRooms:  len(h.rooms),
-			RoomDetails: userCount,
+			TotalUsers: TotalUsers,
+			TotalRooms: len(h.rooms),
+			// RoomDetails: userCount,
 		}
 		data, _ := json.Marshal(stats)
 		msg = Message{
@@ -138,14 +143,11 @@ func (h *Hub) handleCommand(client *Client, cmd string) {
 		h.sendToClient(client, msg)
 	case "/rooms":
 		// Send list of all rooms
-		var rooms []string
-		for r := range h.rooms {
-			rooms = append(rooms, r)
-		}
+		data, _ := json.Marshal(userCount)
 		msg = Message{
 			Type:     MsgRoom,
 			Room:     room.Name,
-			Text:     strings.Join(rooms, ", "),
+			Text:     string(data),
 			Username: client.Username,
 			Time:     time.Now().Format("15:04:05"),
 		}
@@ -340,6 +342,7 @@ func (c *Client) writePump() {
 var hub = newHub()
 
 func handleWebSocket(c *gin.Context) {
+
 	username := c.Query("username")
 	room := c.Query("room")
 	log.Printf("Connection request: username=%s, room=%s", username, room)
@@ -369,6 +372,7 @@ func handleWebSocket(c *gin.Context) {
 
 	go client.writePump()
 	go client.readPump(hub)
+
 }
 
 func main() {
@@ -376,6 +380,15 @@ func main() {
 
 	router := gin.Default()
 	router.GET("/ws", handleWebSocket)
+
+	// Serve static files (HTML, JS, CSS)
+	router.Static("/static", "./static")
+	router.LoadHTMLFiles("static/index.html")
+
+	// Serve the UI at "/"
+	router.GET("/", func(c *gin.Context) {
+		c.HTML(200, "index.html", nil)
+	})
 
 	fmt.Println("🚀 Chat Rooms Server started on :8080")
 	fmt.Println("📱 Connect using: go run client/room_client.go <username> <room>")

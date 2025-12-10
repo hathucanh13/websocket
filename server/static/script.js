@@ -41,7 +41,7 @@ function connectWebSocket() {
     joinBtn.innerHTML = '<span class="spinner"></span>Connecting...';
     joinBtn.disabled = true;
 
-    const wsUrl = `ws://localhost:8080/ws?username=${encodeURIComponent(username)}&room=${encodeURIComponent(room)}`;
+const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws?username=${encodeURIComponent(username)}&room=${encodeURIComponent(room)}`;
     ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
@@ -150,27 +150,43 @@ function displayMessage(msg) {
             `;
             break;
 
-        case 'room':
-            messageDiv.innerHTML = `
-                <div class="message-info info-rooms">
-                    <div class="info-title"># Available rooms</div>
-                    <div class="info-content">${escapeHtml(msg.text)}</div>
-                </div>
-            `;
-            break;
+           case 'room': {
+            let roomsHtml = '';
 
-        case 'stats':
-            if (currentStats) {
-                let roomDetailsHtml = '';
-                for (const [roomName, count] of Object.entries(currentStats.room_details)) {
-                    roomDetailsHtml += `
+            try {
+                const roomData = JSON.parse(msg.text); // { roomName: userCount }
+                for (const [roomName, count] of Object.entries(roomData)) {
+                    roomsHtml += `
                         <div class="stat-row">
                             <span>${escapeHtml(roomName)}:</span>
                             <span class="stat-label">${count} user${count !== 1 ? 's' : ''}</span>
                         </div>
                     `;
                 }
+            } catch (e) {
+                roomsHtml = `<div class="error">❌ Failed to parse room data</div>`;
+            }
 
+            messageDiv.innerHTML = `
+                <div class="message-info info-rooms">
+                    <div class="info-title"># Available rooms</div>
+                    <div class="info-content">${roomsHtml}</div>
+                </div>
+            `;
+            break;
+        }
+
+        // ✅ /stats shows only totals now
+        case 'stats': {
+            let stats = null;
+
+            try {
+                stats = JSON.parse(msg.text); // { total_users, total_rooms }
+            } catch (e) {
+                console.error("Invalid stats JSON:", msg.text);
+            }
+
+            if (stats) {
                 messageDiv.innerHTML = `
                     <div class="message-info info-stats">
                         <div class="info-title">📊 Server Statistics</div>
@@ -178,15 +194,11 @@ function displayMessage(msg) {
                             <div class="stats-grid">
                                 <div class="stat-row">
                                     <span>Total Users:</span>
-                                    <span class="stat-label">${currentStats.total_users}</span>
+                                    <span class="stat-label">${stats.total_users}</span>
                                 </div>
                                 <div class="stat-row">
                                     <span>Total Rooms:</span>
-                                    <span class="stat-label">${currentStats.total_rooms}</span>
-                                </div>
-                                <div class="stats-divider">
-                                    <strong>Room Details:</strong>
-                                    ${roomDetailsHtml}
+                                    <span class="stat-label">${stats.total_rooms}</span>
                                 </div>
                             </div>
                         </div>
@@ -194,6 +206,7 @@ function displayMessage(msg) {
                 `;
             }
             break;
+        }
     }
 
     messagesContainer.appendChild(messageDiv);
