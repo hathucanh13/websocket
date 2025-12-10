@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Chatroom</title>
+    <link rel="stylesheet" href="app.css">
+   
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <div class="login-icon">#</div>
+                <h1 class="login-title">Join Chatroom</h1>
+                <p class="login-subtitle">Connect with others in real-time</p>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Username</label>
+                <input type="text" id="usernameInput" class="form-input" placeholder="Enter your username">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Room</label>
+                <input type="text" id="roomInput" class="form-input" placeholder="Enter room name">
+            </div>
+            
+            <button id="joinBtn" class="btn-primary">Join Room</button>
+            
+            <div class="login-help">
+                Commands: /users, /stats, /rooms
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Screen -->
+    <div id="chatScreen" class="chat-container hidden">
+        <div class="chat-header">
+            <div class="header-info">
+                <h1># <span id="roomName"></span></h1>
+                <p>Logged in as <strong id="currentUser"></strong></p>
+            </div>
+            <div class="header-actions">
+                <button class="btn-action btn-users" onclick="sendCommand('/users')">
+                    👥 <span>Users</span>
+                </button>
+                <button class="btn-action btn-stats" onclick="sendCommand('/stats')">
+                    📊 <span>Stats</span>
+                </button>
+                <button class="btn-action btn-rooms" onclick="sendCommand('/rooms')">
+                    # <span>Rooms</span>
+                </button>
+                <button class="btn-action btn-leave" onclick="disconnect()">
+                    🚪 <span>Leave</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="messagesContainer" class="messages-container"></div>
+
+        <div class="input-container">
+            <div class="input-wrapper">
+                <input type="text" id="messageInput" class="message-input" placeholder="Type a message... (or use /users, /stats, /rooms)">
+                <button id="sendBtn" class="btn-send">Send 📤</button>
+            </div>
+        </div>
+    </div>
+
+ 
+</body>
+<script src="script.js"></script>
+
+</html>
